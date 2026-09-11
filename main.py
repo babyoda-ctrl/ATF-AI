@@ -1,44 +1,53 @@
+import numpy as np
 from collections import Counter
 import matplotlib.pyplot as plt
+import pandas as pd
+activity_names = {
+    0: "Sleeping",
+    1: "Working",
+    2: "Exercising",
+    3: "Socializing",
+    4: "Leisure"
+}
 
-# Example: Predicting daily activities (represented as numbers)
-# 0=Sleep, 1=Work, 2=Exercise, 3=Social, 4=Leisure
+historical_activities = [0,1,2,1,3,1,4,0,1,2,1,3,1,4,0]
 
-historical_activities = [0, 1, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 4]
-
-def calculate_probabilities(sequence):
+def calculate_conditional_probabilities(sequence):
     """
-    Calculate probability distribution from a sequence.
+    Calculate P(next | current) - probability of next activity given current.
 
     Args:
-        sequence: List of integers representing activities
+        sequence: List of activities
 
     Returns:
-        dict: Probability of each activity
+        dict: Nested dictionary of conditional probabilities
     """
-    counts = Counter(sequence)
-    total = len(sequence)
-    probabilities = {activity: count/total for activity, count in counts.items()}
-    return probabilities
+    transitions = {}
 
-# Calculate probabilities
-probs = calculate_probabilities(historical_activities)
+    for i in range(len(sequence) - 1):
+        current = sequence[i]
+        next_activity = sequence[i + 1]
 
-# Display results
-activity_names = {0: 'Sleep', 1: 'Work', 2: 'Exercise', 3: 'Social', 4: 'Leisure'}
-print("Activity Probabilities:")
-for activity, prob in sorted(probs.items()):
-    print(f"  {activity_names[activity]}: {prob:.2%}")
+        if current not in transitions:
+            transitions[current] = []
+        transitions[current].append(next_activity)
 
-# Visualize
-plt.figure(figsize=(10, 5))
-activities = [activity_names[k] for k in sorted(probs.keys())]
-probabilities = [probs[k] for k in sorted(probs.keys())]
-plt.bar(activities, probabilities, color='steelblue')
-plt.title('Digital Twin: Activity Prediction Probabilities')
-plt.ylabel('Probability')
-plt.xlabel('Activity')
-plt.ylim(0, 1.0)
-for i, v in enumerate(probabilities):
-    plt.text(i, v + 0.01, f'{v:.1%}', ha='center')
-plt.show()
+    # Convert to probabilities
+    conditional_probs = {}
+    for current, next_list in transitions.items():
+        counts = Counter(next_list)
+        total = len(next_list)
+        conditional_probs[current] = {activity: count/total for activity, count in counts.items()}
+
+    return conditional_probs
+
+# Calculate conditional probabilities
+cond_probs = calculate_conditional_probabilities(historical_activities)
+
+# Display
+print("Conditional Probabilities: P(Next | Current)\n")
+for current, next_probs in cond_probs.items():
+    print(f"After {activity_names[current]}:")
+    for next_activity, prob in sorted(next_probs.items()):
+        print(f"  -> {activity_names[next_activity]}: {prob:.2%}")
+    print()
