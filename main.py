@@ -1,53 +1,36 @@
+# perceptron implimentation
 import numpy as np
-from collections import Counter
-import matplotlib.pyplot as plt
-import pandas as pd
-activity_names = {
-    0: "Sleeping",
-    1: "Working",
-    2: "Exercising",
-    3: "Socializing",
-    4: "Leisure"
-}
 
-historical_activities = [0,1,2,1,3,1,4,0,1,2,1,3,1,4,0]
+def sigmoid(x):
+    """Sigmoid activation function."""
+    return 1 / (1 + np.exp(-x))
 
-def calculate_conditional_probabilities(sequence):
+def perceptron(inputs, weights, bias):
     """
-    Calculate P(next | current) - probability of next activity given current.
+    Simple perceptron implementation.
 
     Args:
-        sequence: List of activities
+        inputs: Array of input values
+        weights: Array of weights
+        bias: Bias term
 
     Returns:
-        dict: Nested dictionary of conditional probabilities
+        float: Output after activation
     """
-    transitions = {}
+    # Calculate weighted sum
+    weighted_sum = np.dot(inputs, weights) + bias
+    # Apply activation function
+    output = sigmoid(weighted_sum)
+    return output
 
-    for i in range(len(sequence) - 1):
-        current = sequence[i]
-        next_activity = sequence[i + 1]
+# Example: Predicting if someone will exercise based on features
+# Features: [hours_of_sleep, free_time_hours, energy_level (0-1)]
+person_features = np.array([7, 2, 0.8])  # 7 hours sleep, 2 hours free time, high energy
 
-        if current not in transitions:
-            transitions[current] = []
-        transitions[current].append(next_activity)
+# Initialize random weights
+weights = np.array([0.3, 0.5, 0.7])
+bias = -0.5
 
-    # Convert to probabilities
-    conditional_probs = {}
-    for current, next_list in transitions.items():
-        counts = Counter(next_list)
-        total = len(next_list)
-        conditional_probs[current] = {activity: count/total for activity, count in counts.items()}
-
-    return conditional_probs
-
-# Calculate conditional probabilities
-cond_probs = calculate_conditional_probabilities(historical_activities)
-
-# Display
-print("Conditional Probabilities: P(Next | Current)\n")
-for current, next_probs in cond_probs.items():
-    print(f"After {activity_names[current]}:")
-    for next_activity, prob in sorted(next_probs.items()):
-        print(f"  -> {activity_names[next_activity]}: {prob:.2%}")
-    print()
+prediction = perceptron(person_features, weights, bias)
+print(f"Probability of exercising: {prediction:.2%}")
+print(f"Prediction: {'Will exercise' if prediction > 0.5 else 'Will not exercise'}")
