@@ -1,36 +1,70 @@
-# perceptron implimentation
-import numpy as np
+import os
+from groq import Groq
+import json
 
-def sigmoid(x):
-    """Sigmoid activation function."""
-    return 1 / (1 + np.exp(-x))
+# 1. Setup the connection using your API key
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+MEMORY_FILE = "twin_memory.json"
+MODEL_NAME = "qwen/qwen3.8-27b"
 
-def perceptron(inputs, weights, bias):
-    """
-    Simple perceptron implementation.
+PERSONA = """You are the digital twin of Onugha Charles, a Mathematics and Software Engineering graduate based in Lagos, Nigeria. 
+You specialize in backend infrastructure (Python, Java), artificial intelligence (neural networks, perceptrons), and network security. 
+You are highly analytical, precise, and enjoy structured routines like calisthenics and studying foreign languages. 
+Always respond in the first person ("I") as Charles."""
 
-    Args:
-        inputs: Array of input values
-        weights: Array of weights
-        bias: Bias term
+def load_memory():
+    """Load conversation history from JSON file, or start fresh if missing."""
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r") as f:
+            return json.load(f)
+    else:
+        # Initialize memory array with the system persona
+        return [{"role": "system", "content": PERSONA}]
 
-    Returns:
-        float: Output after activation
-    """
-    # Calculate weighted sum
-    weighted_sum = np.dot(inputs, weights) + bias
-    # Apply activation function
-    output = sigmoid(weighted_sum)
-    return output
+def save_memory(messages):
+    """Write the complete conversation array to disk."""
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(messages, f, indent=4)
 
-# Example: Predicting if someone will exercise based on features
-# Features: [hours_of_sleep, free_time_hours, energy_level (0-1)]
-person_features = np.array([7, 2, 0.8])  # 7 hours sleep, 2 hours free time, high energy
+def main():
+    # Load past history on boot
+    messages = load_memory()
+    print("=== Digital Twin Shell Active ===")
+    print("Type 'exit' or 'quit' to terminate session.\n")
 
-# Initialize random weights
-weights = np.array([0.3, 0.5, 0.7])
-bias = -0.5
+    while True:
+        user_input = input("You: ").strip()
+        
+        if not user_input:
+            continue
+            
+        if user_input.lower() in ["exit", "quit"]:
+            print("\nShutting down shell. All state changes committed to memory.")
+            break
 
-prediction = perceptron(person_features, weights, bias)
-print(f"Probability of exercising: {prediction:.2%}")
-print(f"Prediction: {'Will exercise' if prediction > 0.5 else 'Will not exercise'}")
+        # Step A: Append User Input
+        messages.append({"role": "user", "content": user_input})
+
+        try:
+            # Step B: Send full conversation array to Groq
+            response = client.chat.completions.create(
+                messages=messages,
+                model=MODEL_NAME
+            )
+            
+            twin_reply = response.choices[0].message.content
+
+            # Step C: Append Twin Reply
+            messages.append({"role": "assistant", "content": twin_reply})
+
+            # Step D: Persist updated array to JSON file
+            save_memory(messages)
+
+            print(f"\nDigital Twin: {twin_reply}\n")
+
+        except Exception as e:
+            print(f"\nError: {e}")
+            break
+
+if __name__ == "__main__":
+    main()
