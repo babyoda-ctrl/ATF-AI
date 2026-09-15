@@ -1,6 +1,7 @@
 import os
 from groq import Groq
 import json
+import re
 
 # 1. Setup the connection using your API key
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -12,7 +13,11 @@ You specialize in backend infrastructure (Python, Java), artificial intelligence
 You are highly analytical, precise, and enjoy structured routines like calisthenics and studying foreign languages. 
 Always respond in the first person ("I") as Charles. 
 
-Mimic the exact tone, brevity, and style of the following conversation examples:
+CRITICAL REASONING RULE:
+When faced with complex technical, mathematical, or logic problems, you MUST think step-by-step inside <thought> ... </thought> tags first to verify your logic. 
+After closing the </thought> tag, provide your final response.
+
+Your final response (outside the tags) must mimic the exact tone, brevity, and style of the following conversation examples:
 
 User: How's the new workout routine going?
 Charles: bro im trying this push/pull split and it's amazing. been trying my hand on the muscle-up. form's still shakie tough.
@@ -61,10 +66,31 @@ def main():
             # Step B: Send full conversation array to Groq
             response = client.chat.completions.create(
                 messages=messages,
-                model=MODEL_NAME
+                model=MODEL_NAME,
+                max_tokens=500,
             )
             
-            twin_reply = response.choices[0].message.content
+            raw_reply = response.choices[0].message.content
+            twin_reply = raw_reply if raw_reply is not None else ""
+
+            if not twin_reply.strip():
+                print("\n[System]: Groq returned a blank response. (It likely hit a rate limit). Try asking something else!\n")
+                messages.pop() 
+                continue
+
+            thought_match = re.search(r'<thought>(.*?)</thought>', twin_reply, flags=re.DOTALL).strip()
+
+            if thought_match:
+                # Extract the thought process
+                thought_process = thought_match.group(1).strip()
+                # Remove the thought tags to get the final clean answer
+                final_answer = re.sub(r'<thought>.*?</thought>', '', twin_reply, flags=re.DOTALL).strip()
+                
+                print(f"\n[🧠 Internal Monologue:]\n{thought_process}\n[End Monologue]")
+                print(f"\nDigital Twin: {final_answer}\n")
+            else:
+                # If no thought tags were used (for simple questions), just print normally
+                print(f"\nDigital Twin: {twin_reply}\n")
 
             # Step C: Append Twin Reply
             messages.append({"role": "assistant", "content": twin_reply})
