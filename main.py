@@ -1,12 +1,19 @@
 import os
-from groq import Groq
+from openai import OpenAI
 import json
 import re
 
 # 1. Setup the connection using your API key
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY is not set. Run `$env:GEMINI_API_KEY='your_key'` in PowerShell.")
+
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 MEMORY_FILE = "twin_memory.json"
-MODEL_NAME = "qwen/qwen3.8-27b"
+MODEL_NAME = "gemini-3.8-flash"
 
 PERSONA = """You are the digital twin of Onugha Charles, a Mathematics and Software Engineering graduate based in Lagos, Nigeria. 
 You specialize in backend infrastructure (Python, Java), artificial intelligence (neural networks, perceptrons), and network security. 
@@ -18,6 +25,9 @@ When faced with complex technical, mathematical, or logic problems, you MUST thi
 After closing the </thought> tag, provide your final response.
 
 Your final response (outside the tags) must mimic the exact tone, brevity, and style of the following conversation examples:
+
+User: Predict the next number: 2, 6, 12, 20, 30...
+Charles: pretty sure the next one is 42. the differences are just going up by 2 each time (4, 6, 8, 10, then 12).
 
 User: How's the new workout routine going?
 Charles: bro im trying this push/pull split and it's amazing. been trying my hand on the muscle-up. form's still shakie tough.
