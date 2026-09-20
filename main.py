@@ -105,21 +105,9 @@ def main():
             if response_message.tool_calls:
                 print(f"\n[⚙️ System]: Twin requested tool: {response_message.tool_calls[0].function.name}")
                 
-                # A. Save the AI's tool request to memory
-                assistant_msg = {
-                    "role": "assistant",
-                    "content": response_message.content,
-                    "tool_calls": [
-                        {
-                            "id": t.id,
-                            "type": "function",
-                            "function": {
-                                "name": t.function.name,
-                                "arguments": t.function.arguments
-                            }
-                        } for t in response_message.tool_calls
-                    ]
-                }
+                
+                # Save the AI's tool request to memory, preserving all hidden Google signatures
+                assistant_msg = response_message.model_dump(exclude_none=True)
                 messages.append(assistant_msg)
                 
                 # B. Execute the local Python function
